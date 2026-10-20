@@ -273,6 +273,25 @@ describe("DrawingEngine: settings", () => {
     expect(engine.brush.fixedChar).toBe("█"); // wraps
   });
 
+  it("pins a specific glyph (palette click)", () => {
+    const engine = new DrawingEngine(10, 10);
+    engine.pressure = 0.1;
+    engine.setFixedChar("%");
+    engine.pointerDown(input(engine, 2, 2));
+    engine.pointerUp(input(engine, 2, 2));
+    expect(getCell(engine.doc, 2, 2)?.char).toBe("%");
+  });
+
+  it("sets simulated pressure directly within [0, 1]", () => {
+    const engine = new DrawingEngine(10, 10);
+    engine.setPressure(0.75);
+    expect(engine.pressure).toBe(0.75);
+    engine.setPressure(-3);
+    expect(engine.pressure).toBe(0);
+    engine.setPressure(9);
+    expect(engine.pressure).toBe(1);
+  });
+
   it("adjusts simulated pressure within [0, 1]", () => {
     const engine = new DrawingEngine(10, 10);
     engine.pressure = 0.5;

@@ -320,6 +320,18 @@ export class DrawingEngine {
     this.emit();
   }
 
+  /** Paint a specific glyph regardless of pressure (palette click). */
+  setFixedChar(char: string): void {
+    this.brush.fixedChar = char;
+    this.emit();
+  }
+
+  /** Set the simulated pressure directly (pressure bar click). */
+  setPressure(pressure: number): void {
+    this.pressure = clampPressure(pressure);
+    this.emit();
+  }
+
   cycleForeground(direction: 1 | -1): void {
     const n = FG_COLORS.length;
     const index = FG_COLORS.indexOf(this.brush.foreground);

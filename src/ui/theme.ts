@@ -2,13 +2,34 @@ import { RGBA } from "@opentui/core";
 
 /** UI chrome palette (distinct from the paint palettes in core/palettes). */
 export const UI = {
-  chromeBg: "#15151f",
-  chromeText: "#c8ccd8",
-  dim: "#5a6072",
+  /** App backdrop, behind every panel. */
+  bg: "#0d0e15",
+  /** Panel fill. */
+  panelBg: "#131521",
+  /** Panel borders. */
+  border: "#272b3d",
+  /** Highlighted border (canvas, active panel). */
+  borderActive: "#4d6aa8",
+  /** Primary chrome text. */
+  chromeText: "#d7dbea",
+  /** Secondary text. */
+  textMuted: "#9aa0b8",
+  /** De-emphasized text, key hints. */
+  dim: "#626884",
   accent: "#7aa2f7",
   accentHot: "#ff79c6",
-  danger: "#ff5555",
-  ok: "#50fa7b",
+  danger: "#ff6b6b",
+  ok: "#69e39a",
+  /** Selection background for rows and chips. */
+  selectionBg: "#27304b",
+  /** Hover background for clickable rows. */
+  hoverBg: "#1b1e2d",
+  /** Faint dot grid on empty canvas cells. */
+  gridDot: "#1a1c28",
+  /** Preview cells inside the current viewport. */
+  previewIn: "#171b2b",
+  /** Preview cells outside the current viewport. */
+  previewOut: "#0a0b11",
 } as const;
 
 const rgbaCache = new Map<string, RGBA>();

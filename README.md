@@ -13,13 +13,39 @@ bun run start                          # canvas fills the terminal
 bun run src/main.ts -w 100 -h 30       # fixed 100×30 document
 ```
 
-By default the canvas is **adaptive**: the document starts at the terminal
-size and grows when you enlarge the window. Shrinking never destroys
-artwork — the document keeps its size and the viewport pans with the arrow
-keys. Pass both `--width` and `--height` to pin a fixed-size document.
+By default the canvas is **adaptive**: the document starts at the size left
+over by the tool sidebars, status bar and borders, and grows when you enlarge
+the window. Shrinking never destroys artwork — the document keeps its size and
+the viewport pans with the arrow keys. Pass both `--width` and `--height` to
+pin a fixed-size document.
 
 Requires [Bun](https://bun.sh) (OpenTUI's native core loads through its FFI)
 and a terminal with mouse reporting (see *Terminal compatibility* below).
+
+## Interface
+
+```
+┌ Tools ─────┐┌ Canvas 60×20 ────────────┐┌ Characters ─┐
+│ Brush    B ││                          ││ ‹ Density › │
+│ Eraser   E ││      the document        ││ . , : ; +   │
+├ Actions ───┤│                          │├ Colors ─────┤
+│ Undo    ^Z ││                          ││ FG ■ ■ ■ ■  │
+├ Brush ─────┤│                          │├ Preview ────┤
+│ Char # auto││                          ││   minimap   │
+└────────────┘└──────────────────────────┘└─────────────┘
+ BRUSH # auto · Density · size 1 · ██████░░░░ 60% · FG ■
+ ←↑↓→ pan · drag to paint · Tab palette · ? help
+```
+
+Every panel is clickable: tool rows, undo/redo/clear/demo-cat, palette arrows,
+glyph chips, color swatches, the pressure bar and the `? help` hint. `?` or
+`h` opens a modal shortcut reference (`Esc` closes it). The **Preview** panel
+shows a minimap of the whole document, tinted to the current viewport.
+
+The layout adapts to the terminal: both sidebars need at least 78 columns,
+56–77 keeps only the right sidebar, and narrower terminals fall back to the
+canvas alone. Short panels (Actions, Brush, Colors, Preview) drop out as the
+terminal gets shorter, and the status/hints text switches to compact variants.
 
 ## Controls
 
@@ -38,6 +64,8 @@ and a terminal with mouse reporting (see *Terminal compatibility* below).
 | Clear canvas | `c` (undoable) |
 | Demo cat | `Shift+C` (stamps centered, one undoable stroke) |
 | Pan viewport | Arrow keys (when the document is larger than the view) |
+| Help / close help | `?` or `h` · `Esc` |
+| Click UI | tools · undo/redo/clear/cat · glyphs · swatches · pressure bar |
 | Text tool | Click to place the cursor, type, `Enter` newline, `Esc` finish |
 | Quit | `q` or `Ctrl+C` |
 
@@ -54,8 +82,12 @@ src/
     history.ts           #   stroke-based undo/redo
     engine.ts            #   DrawingEngine: tool state machine orchestrating all of the above
   ui/                    # OpenTUI layer (runs under Bun)
+    app.ts               #   app shell: layout, responsive chrome, help, key/mouse wiring
+    layout.ts            #   panel/row/spacer helpers and absolute screen positions
+    left-panel.ts        #   Tools, Actions and Brush panels
+    right-panel.ts       #   Characters and Colors panels
+    minimap.ts           #   whole-document preview with viewport tint
     canvas-view.ts       #   Document → FrameBuffer bridge with shadow-cell diffing
-    app.ts               #   header/status chrome, swatches, key + mouse wiring
     theme.ts             #   UI colors, RGBA cache
   main.ts                # entry point
 test/                    # Vitest unit tests (Node) — core only, no FFI
@@ -95,9 +127,10 @@ interface — the brush engine, tools, and renderer stay untouched.
 The document is rendered to an OpenTUI `FrameBufferRenderable`. The view
 keeps a shadow copy of the native buffer and only writes cells whose desired
 state changed; OpenTUI's native frame differ handles the rest, so drawing is
-flicker-free. Terminal resizes re-derive the viewport from the document
-(the document itself never resizes under you) and the viewport auto-scrolls
-to keep the pointer visible.
+flicker-free. Empty cells get a faint dot grid so the canvas reads as a
+worksheet. Terminal resizes re-derive the viewport from the document (the
+document itself never resizes under you) and the viewport auto-scrolls to keep
+the pointer visible.
 
 ## Terminal compatibility notes
 

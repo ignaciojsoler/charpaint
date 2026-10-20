@@ -31,7 +31,11 @@ await setup.renderOnce();
 const frame1 = setup.captureCharFrame();
 check("header shows CHARPAINT", frame1.includes("CHARPAINT"));
 check("header shows document dimensions", frame1.includes("60×20"));
-check("status bar shows shortcuts", frame1.includes("b brush"));
+check("status bar shows shortcuts", frame1.includes("pan") && frame1.includes("? help"));
+check(
+  "sidebars render",
+  ["Tools", "Characters", "Colors", "Preview"].every((label) => frame1.includes(label)),
+);
 
 // --- 2. locate the canvas on screen via its global origin ---------------
 const canvas = (app as unknown as { canvas: { globalOrigin(): { x: number; y: number } } })
@@ -108,7 +112,43 @@ for (let y = 5; y <= 10; y++) {
 }
 check("line tool commits vertical line", lineOk);
 
-// --- 10. resize keeps the document and repaints --------------------------------
+// --- 10. UI: clickable tools, glyphs, colors and help -------------------------
+const ui = app as unknown as {
+  tools: { box: { screenX: number; screenY: number } };
+  chars: { box: { screenX: number; screenY: number } };
+  colors: { box: { screenX: number; screenY: number } };
+};
+
+const toolsBox = ui.tools.box;
+await setup.mockMouse.click(toolsBox.screenX + 2, toolsBox.screenY + 2); // Eraser row
+await setup.renderOnce();
+check("clicking a tool row selects the tool", engine.tool === "eraser");
+await setup.mockMouse.click(toolsBox.screenX + 2, toolsBox.screenY + 1); // Brush row
+await setup.renderOnce();
+check("clicking another tool row switches back", engine.tool === "brush");
+
+const charsBox = ui.chars.box;
+await setup.mockMouse.click(charsBox.screenX + 6, charsBox.screenY + 2); // second glyph
+await setup.renderOnce();
+check("clicking a glyph pins it", engine.brush.fixedChar === ",");
+await setup.mockInput.pressKey("p");
+await setup.renderOnce();
+check("P returns to pressure mode", engine.brush.fixedChar === null);
+
+const colorsBox = ui.colors.box;
+await setup.mockMouse.click(colorsBox.screenX + 7, colorsBox.screenY + 1); // second FG swatch
+await setup.renderOnce();
+check("clicking a swatch sets the foreground", engine.brush.foreground === "#8a8f98");
+
+await setup.mockInput.pressKey("?");
+await setup.renderOnce();
+check("? opens the help overlay", setup.captureCharFrame().includes("EDIT / VIEW"));
+// A lone ESC is a sequence prefix in the test input parser, so toggle with "?".
+await setup.mockInput.pressKey("?");
+await setup.renderOnce();
+check("help overlay toggles closed", !setup.captureCharFrame().includes("EDIT / VIEW"));
+
+// --- 11. resize keeps the document and repaints --------------------------------
 setup.renderer.resize(80, 24);
 await setup.renderOnce();
 await setup.renderOnce();
@@ -116,7 +156,7 @@ check("document survives resize", getCell(engine.doc, 2, 12)?.char === "h");
 const frameAfterResize = setup.captureCharFrame();
 check("header still renders after resize", frameAfterResize.includes("CHARPAINT"));
 
-// --- 11. demo cat stamp (Shift+C) --------------------------------------------
+// --- 12. demo cat stamp (Shift+C) --------------------------------------------
 await setup.mockInput.pressKey("C");
 await setup.renderOnce();
 const catOrigin = centerOrigin(CAT_ART, engine.doc.width, engine.doc.height);
@@ -135,7 +175,7 @@ check("cat stamp redoes", getCell(engine.doc, catOrigin.x + 19, catOrigin.y + 12
 
 setup.renderer.destroy();
 
-// --- 12. adaptive canvas: fills the terminal and follows growth --------------
+// --- 13. adaptive canvas: fills the available area and follows growth --------
 const autoSetup = await createTestRenderer({ width: 100, height: 30 });
 const autoApp = new CharpaintApp(autoSetup.renderer as any, 60, 20, { autoGrow: true });
 const autoEngine = (
@@ -143,12 +183,14 @@ const autoEngine = (
 ).engine;
 await autoSetup.renderOnce();
 check(
-  "auto canvas fills the terminal at launch",
-  autoEngine.doc.width === 100 && autoEngine.doc.height === 26,
+  "auto canvas fills the available area at launch",
+  autoEngine.doc.width === 60 && autoEngine.doc.height === 24,
 );
 
 autoEngine.pressure = 1;
-await autoSetup.mockMouse.click(5, 3);
+const autoCanvas = (autoApp as unknown as { canvas: { screenX: number; screenY: number } })
+  .canvas;
+await autoSetup.mockMouse.click(autoCanvas.screenX + 5, autoCanvas.screenY + 3);
 await autoSetup.renderOnce();
 
 autoSetup.renderer.resize(120, 40);
@@ -156,9 +198,9 @@ await autoSetup.renderOnce();
 await autoSetup.renderOnce();
 check(
   "auto canvas grows with the terminal",
-  autoEngine.doc.width === 120 && autoEngine.doc.height === 36,
+  autoEngine.doc.width === 80 && autoEngine.doc.height === 34,
 );
-check("auto canvas preserves content on growth", getCell(autoEngine.doc, 5, 2)?.char === "█");
+check("auto canvas preserves content on growth", getCell(autoEngine.doc, 5, 3)?.char === "█");
 
 autoSetup.renderer.destroy();
 

@@ -9,7 +9,8 @@ import type { DrawingEngine } from "../core/engine.ts";
 import { getCell, isEmptyCell } from "../core/document.ts";
 import { CANVAS_BG, GHOST_BG, MARGIN_BG } from "../core/palettes.ts";
 import type { Cell, Point } from "../core/types.ts";
-import { rgba } from "./theme.ts";
+import { absoluteOrigin } from "./layout.ts";
+import { rgba, UI } from "./theme.ts";
 
 const FALLBACK_FG = "#3a3f55";
 
@@ -35,20 +36,22 @@ export class CanvasView extends FrameBufferRenderable {
   private oy = 0;
   private shadow: (ShadowCell | null)[] = [];
   private destroyed = false;
+  private readonly viewportListeners = new Set<() => void>();
 
   constructor(ctx: RenderContext, cli: CliRenderer, engine: DrawingEngine) {
     super(ctx, {
       id: "charpaint-canvas",
-      width: Math.max(1, engine.doc.width),
-      height: Math.max(1, engine.doc.height),
+      width: 1,
+      height: 1,
       flexGrow: 1,
       flexShrink: 1,
-      minWidth: 4,
-      minHeight: 2,
+      minWidth: 1,
+      minHeight: 1,
       onSizeChange: () => {
         // A resize clears the native buffer: drop the shadow to force a
         // full (once) repaint of the new viewport.
         this.shadow = [];
+        this.notifyViewport();
         this.sync();
       },
       onMouseDown: (event) => this.handlePointer("down", event),
@@ -65,15 +68,22 @@ export class CanvasView extends FrameBufferRenderable {
 
   /** Global (render-region) origin of this renderable. */
   private globalOrigin(): Point {
-    let x = 0;
-    let y = 0;
-    let node = this as { x: number; y: number; parent: unknown } | null;
-    while (node) {
-      x += node.x;
-      y += node.y;
-      node = (node.parent ?? null) as typeof node;
-    }
-    return { x, y };
+    return absoluteOrigin(this);
+  }
+
+  /** Current viewport rectangle in document coordinates. */
+  viewport(): { x: number; y: number; width: number; height: number } {
+    return { x: this.ox, y: this.oy, width: this.width, height: this.height };
+  }
+
+  /** Subscribe to pan/scroll/resize changes of the visible area. */
+  onViewportChange(listener: () => void): () => void {
+    this.viewportListeners.add(listener);
+    return () => this.viewportListeners.delete(listener);
+  }
+
+  private notifyViewport(): void {
+    for (const listener of this.viewportListeners) listener();
   }
 
   private toDocument(event: MouseEvent): Point {
@@ -86,6 +96,8 @@ export class CanvasView extends FrameBufferRenderable {
 
   /** Scroll the viewport so a document point stays visible. */
   private ensureVisible(point: Point): void {
+    const prevX = this.ox;
+    const prevY = this.oy;
     const maxOx = Math.max(0, this.engine.doc.width - this.width);
     const maxOy = Math.max(0, this.engine.doc.height - this.height);
     if (point.x < this.ox) this.ox = point.x;
@@ -94,14 +106,19 @@ export class CanvasView extends FrameBufferRenderable {
     if (point.y >= this.oy + this.height) this.oy = point.y - this.height + 1;
     this.ox = Math.max(0, Math.min(maxOx, this.ox));
     this.oy = Math.max(0, Math.min(maxOy, this.oy));
+    if (this.ox !== prevX || this.oy !== prevY) this.notifyViewport();
   }
 
   /** Pan the viewport by cells (keyboard navigation when doc > viewport). */
   pan(dx: number, dy: number): void {
     const maxOx = Math.max(0, this.engine.doc.width - this.width);
     const maxOy = Math.max(0, this.engine.doc.height - this.height);
-    this.ox = Math.max(0, Math.min(maxOx, this.ox + dx));
-    this.oy = Math.max(0, Math.min(maxOy, this.oy + dy));
+    const nextX = Math.max(0, Math.min(maxOx, this.ox + dx));
+    const nextY = Math.max(0, Math.min(maxOy, this.oy + dy));
+    if (nextX === this.ox && nextY === this.oy) return;
+    this.ox = nextX;
+    this.oy = nextY;
+    this.notifyViewport();
     this.sync();
   }
 
@@ -160,6 +177,10 @@ export class CanvasView extends FrameBufferRenderable {
       return { char: " ", fg: FALLBACK_FG, bg: MARGIN_BG };
     }
     const cell = getCell(doc, dx, dy)!;
+    if (isEmptyCell(cell)) {
+      // Faint dot grid: the canvas reads as a surface, not a black void.
+      return { char: "·", fg: UI.gridDot, bg: CANVAS_BG };
+    }
     return {
       char: cell.char,
       fg: cell.foreground ?? FALLBACK_FG,
