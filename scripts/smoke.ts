@@ -6,6 +6,7 @@
 import { createTestRenderer } from "@opentui/core/testing";
 import { getCell } from "../src/core/document.ts";
 import { CharpaintApp } from "../src/ui/app.ts";
+import { CAT_ART, centerOrigin } from "../src/core/demo-art.ts";
 
 let failures = 0;
 function check(name: string, condition: boolean) {
@@ -74,7 +75,7 @@ await setup.mockMouse.click(origin.x + 2, origin.y + 8);
 engine.pressure = 0.95;
 await setup.mockMouse.click(origin.x + 4, origin.y + 8);
 await setup.renderOnce();
-check("low pressure paints '.'", getCell(engine.doc, 2, 8)?.char === ".");
+check("low pressure paints ','", getCell(engine.doc, 2, 8)?.char === ",");
 check("high pressure paints '█'", getCell(engine.doc, 4, 8)?.char === "█");
 
 // --- 7. palette + fixed char ------------------------------------------------
@@ -83,7 +84,7 @@ await setup.mockInput.pressKey("]");
 await setup.mockInput.pressKey("]"); // fixedChar = second palette char
 await setup.mockMouse.click(origin.x + 6, origin.y + 8);
 await setup.renderOnce();
-check("char cycling selects a fixed char", getCell(engine.doc, 6, 8)?.char === ":");
+check("char cycling selects a fixed char", getCell(engine.doc, 6, 8)?.char === ",");
 
 // --- 8. text tool ------------------------------------------------------------
 await setup.mockInput.pressKey("t");
@@ -114,6 +115,23 @@ await setup.renderOnce();
 check("document survives resize", getCell(engine.doc, 2, 12)?.char === "h");
 const frameAfterResize = setup.captureCharFrame();
 check("header still renders after resize", frameAfterResize.includes("CHARPAINT"));
+
+// --- 11. demo cat stamp (Shift+C) --------------------------------------------
+await setup.mockInput.pressKey("C");
+await setup.renderOnce();
+const catOrigin = centerOrigin(CAT_ART, engine.doc.width, engine.doc.height);
+const noseCell = getCell(engine.doc, catOrigin.x + 19, catOrigin.y + 12);
+check("Shift+C stamps the cat (nose pixel)", noseCell?.foreground === "#ff7aa8");
+check("cat outline pixel painted", getCell(engine.doc, catOrigin.x + 2, catOrigin.y)?.foreground === "#1f1410");
+check("cat is visible in the frame", setup.captureCharFrame().includes("█"));
+
+await setup.mockInput.pressKey("u");
+await setup.renderOnce();
+check("cat stamp undoes as one stroke", getCell(engine.doc, catOrigin.x + 19, catOrigin.y + 12)?.char === " ");
+
+await setup.mockInput.pressKey("U");
+await setup.renderOnce();
+check("cat stamp redoes", getCell(engine.doc, catOrigin.x + 19, catOrigin.y + 12)?.foreground === "#ff7aa8");
 
 setup.renderer.destroy();
 

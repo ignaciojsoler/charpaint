@@ -7,17 +7,25 @@ import {
 } from "../src/core/brush.ts";
 import { PALETTES } from "../src/core/palettes.ts";
 
-const DENSITY = PALETTES[0]!.chars; // [".", ":", "+", "#", "█"]
+const DENSITY = PALETTES[0]!.chars; // 10 bands, light → heavy
 
 describe("pressureToChar", () => {
-  it("implements the spec's five pressure levels", () => {
-    expect(pressureToChar(0.0, DENSITY)).toBe("."); // low
-    expect(pressureToChar(0.1, DENSITY)).toBe(".");
-    expect(pressureToChar(0.3, DENSITY)).toBe(":"); // medium-low
-    expect(pressureToChar(0.5, DENSITY)).toBe("+"); // medium
-    expect(pressureToChar(0.7, DENSITY)).toBe("#"); // high
-    expect(pressureToChar(0.9, DENSITY)).toBe("█"); // maximum
-    expect(pressureToChar(1.0, DENSITY)).toBe("█");
+  it("maps the ten pressure bands onto distinct density glyphs", () => {
+    expect(DENSITY).toHaveLength(10);
+    // One glyph per 10% band: every UI pressure step is visible.
+    expect(pressureToChar(0.05, DENSITY)).toBe("."); // low
+    expect(pressureToChar(0.15, DENSITY)).toBe(",");
+    expect(pressureToChar(0.25, DENSITY)).toBe(":"); // medium-low
+    expect(pressureToChar(0.35, DENSITY)).toBe(";");
+    expect(pressureToChar(0.45, DENSITY)).toBe("+"); // medium
+    expect(pressureToChar(0.55, DENSITY)).toBe("*");
+    expect(pressureToChar(0.65, DENSITY)).toBe("#"); // high
+    expect(pressureToChar(0.75, DENSITY)).toBe("%");
+    expect(pressureToChar(0.85, DENSITY)).toBe("@");
+    expect(pressureToChar(0.95, DENSITY)).toBe("█"); // maximum
+
+    const glyphs = Array.from({ length: 10 }, (_, i) => pressureToChar((i + 0.5) / 10, DENSITY));
+    expect(new Set(glyphs).size).toBe(10);
   });
 
   it("clamps out-of-range pressure", () => {
@@ -66,7 +74,7 @@ describe("BrushEngine", () => {
     state.background = "#0000ff";
     const brush = new BrushEngine(state);
     const cell = brush.resolveCell({ x: 0, y: 0, pressure: 0.5, buttons: 1 }, false);
-    expect(cell).toEqual({ char: "+", foreground: "#ff0000", background: "#0000ff" });
+    expect(cell).toEqual({ char: "*", foreground: "#ff0000", background: "#0000ff" });
   });
 
   it("omits background when none is selected", () => {

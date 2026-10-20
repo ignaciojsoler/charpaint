@@ -12,11 +12,17 @@ export interface CharPalette {
 }
 
 /**
- * The default "Density" ramp implements the pressure mapping from the
- * product spec: low `.`, medium-low `:`, medium `+`, high `#`, max `█`.
+ * The default "Density" ramp has one glyph per pressure band (10%), so
+ * every pressure step visible in the UI produces a distinct stroke weight.
+ * It keeps the product spec's anchors: `.` at the lightest bands, `:` at
+ * medium-low, `+` at medium, `#` at high, and `█` at maximum pressure.
  */
 export const PALETTES: readonly CharPalette[] = [
-  { id: "density", name: "Density", chars: [".", ":", "+", "#", "█"] },
+  {
+    id: "density",
+    name: "Density",
+    chars: [".", ",", ":", ";", "+", "*", "#", "%", "@", "█"],
+  },
   { id: "ascii", name: "ASCII", chars: [" ", ".", ",", ":", ";", "!", "+", "*", "#", "%", "@"] },
   { id: "blocks", name: "Blocks", chars: ["░", "▒", "▓", "█"] },
   { id: "organic", name: "Organic", chars: [".", ",", "'", "`", "~", "^"] },

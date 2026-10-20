@@ -367,6 +367,18 @@ export class DrawingEngine {
     this.emit();
   }
 
+  /**
+   * Paint a batch of positioned cells as a single undoable stroke.
+   * Used by demo artwork and future paste/import features.
+   */
+  stampCells(writes: readonly { x: number; y: number; cell: Cell }[]): void {
+    this.commitText();
+    this.beginStroke();
+    for (const write of writes) this.writeCell(write.x, write.y, write.cell);
+    this.endStroke();
+    this.emit();
+  }
+
   // -------------------------------------------------------------- status
 
   get isModified(): boolean {

@@ -21,10 +21,10 @@ function input(
 describe("DrawingEngine: brush", () => {
   it("paints a single cell on pointer down", () => {
     const engine = new DrawingEngine(10, 10);
-    engine.pressure = 0.5; // medium → "+"
+    engine.pressure = 0.5; // medium → "*"
     engine.pointerDown(input(engine, 3, 4));
     engine.pointerUp(input(engine, 3, 4));
-    expect(getCell(engine.doc, 3, 4)?.char).toBe("+");
+    expect(getCell(engine.doc, 3, 4)?.char).toBe("*");
   });
 
   it("maps pressure to density while painting", () => {
@@ -32,7 +32,7 @@ describe("DrawingEngine: brush", () => {
     engine.pressure = 0.1;
     engine.pointerDown(input(engine, 0, 0));
     engine.pointerUp(input(engine, 0, 0));
-    expect(getCell(engine.doc, 0, 0)?.char).toBe(".");
+    expect(getCell(engine.doc, 0, 0)?.char).toBe(",");
 
     engine.pressure = 1.0;
     engine.pointerDown(input(engine, 1, 0));
@@ -267,7 +267,7 @@ describe("DrawingEngine: settings", () => {
     engine.cycleChar(1);
     expect(engine.brush.fixedChar).toBe(".");
     engine.cycleChar(1);
-    expect(engine.brush.fixedChar).toBe(":");
+    expect(engine.brush.fixedChar).toBe(",");
     engine.cycleChar(-1);
     engine.cycleChar(-1);
     expect(engine.brush.fixedChar).toBe("█"); // wraps

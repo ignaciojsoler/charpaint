@@ -12,6 +12,7 @@ import {
 } from "@opentui/core";
 import { DrawingEngine, PRESSURE_STEP } from "../core/engine.ts";
 import { BG_COLORS, FG_COLORS, PALETTES } from "../core/palettes.ts";
+import { CAT_ART, artToCells, centerOrigin } from "../core/demo-art.ts";
 import { TOOL_LABELS, type ToolId } from "../core/types.ts";
 import { CanvasView } from "./canvas-view.ts";
 import { UI } from "./theme.ts";
@@ -27,7 +28,7 @@ const TOOL_KEYS: Record<string, ToolId> = {
 
 const SHORTCUT_HINT =
   "b brush · e erase · l line · r rect · t text · i pick · tab palette · [ ] char · p density on/off · " +
-  "-/+ pressure · 1-4 size · f/F fg · g/G bg · u/^z undo · U/^y redo · c clear · q quit";
+  "-/+ pressure · 1-4 size · f/F fg · g/G bg · u/^z undo · U/^y redo · c clear · C cat · q quit";
 
 /**
  * Application shell: header, canvas, status bar, and all input wiring.
@@ -282,7 +283,13 @@ export class CharpaintApp {
         else engine.undo();
         return;
       case "c":
-        engine.clearCanvas();
+        if (key.shift) {
+          // Demo artwork: stamp the cat, centered, as one undoable stroke.
+          const origin = centerOrigin(CAT_ART, engine.doc.width, engine.doc.height);
+          engine.stampCells(artToCells(CAT_ART, origin.x, origin.y));
+        } else {
+          engine.clearCanvas();
+        }
         return;
     }
   };
