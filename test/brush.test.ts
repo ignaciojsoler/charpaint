@@ -28,6 +28,20 @@ describe("pressureToChar", () => {
     expect(new Set(glyphs).size).toBe(10);
   });
 
+  it("starts each 10% band on its glyph", () => {
+    expect(pressureToChar(0, DENSITY)).toBe(".");
+    expect(pressureToChar(0.1, DENSITY)).toBe(",");
+    expect(pressureToChar(0.2, DENSITY)).toBe(":");
+    expect(pressureToChar(0.7, DENSITY)).toBe("%");
+    expect(pressureToChar(0.8, DENSITY)).toBe("@");
+    expect(pressureToChar(0.9, DENSITY)).toBe("█");
+    expect(pressureToChar(1, DENSITY)).toBe("█");
+  });
+
+  it("does not skip a band at a floating-point boundary", () => {
+    expect(pressureToChar(0.7999999999999999, DENSITY)).toBe("@");
+  });
+
   it("clamps out-of-range pressure", () => {
     expect(pressureToChar(-1, DENSITY)).toBe(".");
     expect(pressureToChar(2, DENSITY)).toBe("█");

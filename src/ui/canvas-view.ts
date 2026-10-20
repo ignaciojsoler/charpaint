@@ -36,7 +36,6 @@ export class CanvasView extends FrameBufferRenderable {
   private oy = 0;
   private shadow: (ShadowCell | null)[] = [];
   private destroyed = false;
-  private readonly viewportListeners = new Set<() => void>();
 
   constructor(ctx: RenderContext, cli: CliRenderer, engine: DrawingEngine) {
     super(ctx, {
@@ -51,7 +50,6 @@ export class CanvasView extends FrameBufferRenderable {
         // A resize clears the native buffer: drop the shadow to force a
         // full (once) repaint of the new viewport.
         this.shadow = [];
-        this.notifyViewport();
         this.sync();
       },
       onMouseDown: (event) => this.handlePointer("down", event),
@@ -76,16 +74,6 @@ export class CanvasView extends FrameBufferRenderable {
     return { x: this.ox, y: this.oy, width: this.width, height: this.height };
   }
 
-  /** Subscribe to pan/scroll/resize changes of the visible area. */
-  onViewportChange(listener: () => void): () => void {
-    this.viewportListeners.add(listener);
-    return () => this.viewportListeners.delete(listener);
-  }
-
-  private notifyViewport(): void {
-    for (const listener of this.viewportListeners) listener();
-  }
-
   private toDocument(event: MouseEvent): Point {
     const origin = this.globalOrigin();
     return {
@@ -106,7 +94,6 @@ export class CanvasView extends FrameBufferRenderable {
     if (point.y >= this.oy + this.height) this.oy = point.y - this.height + 1;
     this.ox = Math.max(0, Math.min(maxOx, this.ox));
     this.oy = Math.max(0, Math.min(maxOy, this.oy));
-    if (this.ox !== prevX || this.oy !== prevY) this.notifyViewport();
   }
 
   /** Pan the viewport by cells (keyboard navigation when doc > viewport). */
@@ -118,7 +105,6 @@ export class CanvasView extends FrameBufferRenderable {
     if (nextX === this.ox && nextY === this.oy) return;
     this.ox = nextX;
     this.oy = nextY;
-    this.notifyViewport();
     this.sync();
   }
 

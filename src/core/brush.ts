@@ -45,7 +45,9 @@ export function clampPressure(pressure: number): number {
 export function pressureToChar(pressure: number, chars: readonly string[]): string {
   if (chars.length === 0) return "#";
   const p = clampPressure(pressure);
-  const index = Math.min(chars.length - 1, Math.floor(p * chars.length));
+  // Nudge band boundaries so accumulated pressure steps (0.7 + 0.1) do not
+  // land a hair below the next band and skip a glyph.
+  const index = Math.min(chars.length - 1, Math.floor(p * chars.length + 1e-9));
   return chars[index] ?? chars[chars.length - 1] ?? "#";
 }
 

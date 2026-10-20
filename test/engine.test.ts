@@ -282,6 +282,14 @@ describe("DrawingEngine: settings", () => {
     expect(getCell(engine.doc, 2, 2)?.char).toBe("%");
   });
 
+  it("keeps pressure steps exact so density bands are not skipped", () => {
+    const engine = new DrawingEngine(10, 10);
+    engine.setPressure(0.7);
+    engine.adjustPressure(0.1);
+    expect(engine.pressure).toBe(0.8);
+    expect(engine.resolvedBrushCell().char).toBe("@");
+  });
+
   it("sets simulated pressure directly within [0, 1]", () => {
     const engine = new DrawingEngine(10, 10);
     engine.setPressure(0.75);

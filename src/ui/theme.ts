@@ -26,10 +26,6 @@ export const UI = {
   hoverBg: "#1b1e2d",
   /** Faint dot grid on empty canvas cells. */
   gridDot: "#1a1c28",
-  /** Preview cells inside the current viewport. */
-  previewIn: "#171b2b",
-  /** Preview cells outside the current viewport. */
-  previewOut: "#0a0b11",
 } as const;
 
 const rgbaCache = new Map<string, RGBA>();

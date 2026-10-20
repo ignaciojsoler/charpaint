@@ -30,22 +30,21 @@ and a terminal with mouse reporting (see *Terminal compatibility* below).
 │ Eraser   E ││      the document        ││ . , : ; +   │
 ├ Actions ───┤│                          │├ Colors ─────┤
 │ Undo    ^Z ││                          ││ FG ■ ■ ■ ■  │
-├ Brush ─────┤│                          │├ Preview ────┤
-│ Char # auto││                          ││   minimap   │
-└────────────┘└──────────────────────────┘└─────────────┘
+├ Brush ─────┤│                          ││   ■ ■ ■ ■   │
+│ Char # auto││                          │└─────────────┘
+└────────────┘└──────────────────────────┘
  BRUSH # auto · Density · size 1 · ██████░░░░ 60% · FG ■
  ←↑↓→ pan · drag to paint · Tab palette · ? help
 ```
 
 Every panel is clickable: tool rows, undo/redo/clear/demo-cat, palette arrows,
 glyph chips, color swatches, the pressure bar and the `? help` hint. `?` or
-`h` opens a modal shortcut reference (`Esc` closes it). The **Preview** panel
-shows a minimap of the whole document, tinted to the current viewport.
+`h` opens a modal shortcut reference (`Esc` closes it).
 
 The layout adapts to the terminal: both sidebars need at least 78 columns,
 56–77 keeps only the right sidebar, and narrower terminals fall back to the
-canvas alone. Short panels (Actions, Brush, Colors, Preview) drop out as the
-terminal gets shorter, and the status/hints text switches to compact variants.
+canvas alone. Short panels (Actions, Brush, Colors) drop out as the terminal
+gets shorter, and the status/hints text switches to compact variants.
 
 ## Controls
 
@@ -86,7 +85,6 @@ src/
     layout.ts            #   panel/row/spacer helpers and absolute screen positions
     left-panel.ts        #   Tools, Actions and Brush panels
     right-panel.ts       #   Characters and Colors panels
-    minimap.ts           #   whole-document preview with viewport tint
     canvas-view.ts       #   Document → FrameBuffer bridge with shadow-cell diffing
     theme.ts             #   UI colors, RGBA cache
   main.ts                # entry point

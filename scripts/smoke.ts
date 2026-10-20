@@ -34,7 +34,7 @@ check("header shows document dimensions", frame1.includes("60×20"));
 check("status bar shows shortcuts", frame1.includes("pan") && frame1.includes("? help"));
 check(
   "sidebars render",
-  ["Tools", "Characters", "Colors", "Preview"].every((label) => frame1.includes(label)),
+  ["Tools", "Characters", "Colors"].every((label) => frame1.includes(label)),
 );
 
 // --- 2. locate the canvas on screen via its global origin ---------------
@@ -81,6 +81,12 @@ await setup.mockMouse.click(origin.x + 4, origin.y + 8);
 await setup.renderOnce();
 check("low pressure paints ','", getCell(engine.doc, 2, 8)?.char === ",");
 check("high pressure paints '█'", getCell(engine.doc, 4, 8)?.char === "█");
+
+engine.setPressure(0.7);
+await setup.mockInput.pressKey("=");
+await setup.mockMouse.click(origin.x + 8, origin.y + 8);
+await setup.renderOnce();
+check("80% pressure paints '@'", getCell(engine.doc, 8, 8)?.char === "@");
 
 // --- 7. palette + fixed char ------------------------------------------------
 await setup.mockInput.pressKey("p"); // ensure density mode off->fixed? no: clear fixed

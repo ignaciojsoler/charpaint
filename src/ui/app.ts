@@ -15,7 +15,6 @@ import { PALETTES } from "../core/palettes.ts";
 import { CAT_ART, artToCells, centerOrigin } from "../core/demo-art.ts";
 import { TOOL_LABELS, type ToolId } from "../core/types.ts";
 import { CanvasView } from "./canvas-view.ts";
-import { MiniMapView } from "./minimap.ts";
 import { ActionsPanel, BrushPanel, ToolsPanel } from "./left-panel.ts";
 import { CharsPanel, ColorsPanel } from "./right-panel.ts";
 import { panel } from "./layout.ts";
@@ -45,7 +44,6 @@ const RIGHT_ONLY_MIN_WIDTH = 56;
 
 const ACTIONS_MIN_BODY = 14;
 const BRUSH_MIN_BODY = 20;
-const PREVIEW_MIN_BODY = 17;
 const COLORS_MIN_BODY = 12;
 
 const HELP = `TOOLS
@@ -72,9 +70,9 @@ VIEW    ^Z undo  ^Y redo  C clear  ⇧C cat
         Arrows pan  drag paint  Q quit`;
 
 /**
- * Application shell: title bar, tool/brush sidebar, canvas, character and
- * color sidebars, preview, and status bar. Owns no drawing logic — it
- * adapts terminal input into engine calls.
+ * Application shell: tool/brush sidebars, canvas, character and color
+ * sidebars, and status bar. Owns no drawing logic — it adapts terminal input
+ * into engine calls.
  */
 export interface CharpaintOptions {
   /**
@@ -89,14 +87,12 @@ export class CharpaintApp {
   private readonly engine: DrawingEngine;
   private readonly renderer: CliRenderer;
   private readonly canvas: CanvasView;
-  private readonly minimap: MiniMapView;
   private readonly autoGrow: boolean;
 
   private readonly body: BoxRenderable;
   private readonly leftColumn: BoxRenderable;
   private readonly rightColumn: BoxRenderable;
   private readonly canvasPanel: BoxRenderable;
-  private readonly previewPanel: BoxRenderable;
   private readonly tools: ToolsPanel;
   private readonly actions: ActionsPanel;
   private readonly brush: BrushPanel;
@@ -180,9 +176,6 @@ export class CharpaintApp {
 
     this.chars = new CharsPanel(ctx, engine);
     this.colors = new ColorsPanel(ctx, engine);
-    this.previewPanel = panel(ctx, { id: "preview-panel", title: " Preview ", flexGrow: 1 });
-    this.minimap = new MiniMapView(ctx, engine, () => this.canvas.viewport());
-    this.previewPanel.add(this.minimap);
 
     const status = new BoxRenderable(ctx, {
       id: "charpaint-status",
@@ -236,7 +229,6 @@ export class CharpaintApp {
     root.add(this.helpOverlay);
     renderer.root.add(root);
 
-    this.canvas.onViewportChange(() => this.minimap.sync());
     engine.subscribe(() => this.refreshChrome());
     renderer.keyInput.on("keypress", this.onKey);
     renderer.on("resize", this.onRendererResize);
@@ -339,21 +331,12 @@ export class CharpaintApp {
 
   /**
    * Frame buffers are sized explicitly (they do not flex-grow), so the
-   * canvas and the preview get the exact content area of their panels.
+   * canvas gets the exact content area of its panel.
    */
   private sizeFrames(): void {
     const available = this.availableCanvasSize();
     this.canvas.width = available.width;
     this.canvas.height = available.height;
-
-    if (this.previewPanel.parent === null) return;
-    const bodyHeight = this.renderer.height - ROOT_BORDER - STATUS_ROWS;
-    const colorsHeight = this.colors.box.parent !== null ? this.colors.box.height : 0;
-    const previewHeight = bodyHeight - this.chars.box.height - colorsHeight - CANVAS_BORDER;
-    if (previewHeight >= 1) {
-      this.minimap.width = RIGHT_WIDTH - CANVAS_BORDER;
-      this.minimap.height = previewHeight;
-    }
   }
 
   /**
@@ -384,11 +367,10 @@ export class CharpaintApp {
     const showActions = showLeft && bodyHeight >= ACTIONS_MIN_BODY;
     const showBrush = showLeft && bodyHeight >= BRUSH_MIN_BODY;
     const showColors = showRight && bodyHeight >= COLORS_MIN_BODY;
-    const showPreview = showRight && bodyHeight >= PREVIEW_MIN_BODY;
 
     this.layoutHelp();
 
-    const key = `${showLeft}|${showRight}|${showActions}|${showBrush}|${showColors}|${showPreview}`;
+    const key = `${showLeft}|${showRight}|${showActions}|${showBrush}|${showColors}`;
     if (key === this.layoutKey) return;
     this.layoutKey = key;
 
@@ -406,7 +388,6 @@ export class CharpaintApp {
     if (showRight) {
       const right: Renderable[] = [this.chars.box];
       if (showColors) right.push(this.colors.box);
-      if (showPreview) right.push(this.previewPanel);
       setChildren(this.rightColumn, right);
     }
   }
@@ -429,7 +410,6 @@ export class CharpaintApp {
     this.brush.refresh();
     this.chars.refresh();
     this.colors.refresh();
-    this.minimap.sync();
 
     const bg = engine.brush.background === null ? dim("∅") : fg(engine.brush.background)("■");
     const tool = fg(UI.accent)(bold(TOOL_LABELS[engine.tool]));

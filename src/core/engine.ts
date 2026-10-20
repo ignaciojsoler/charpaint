@@ -288,7 +288,9 @@ export class DrawingEngine {
   }
 
   adjustPressure(delta: number): void {
-    this.pressure = clampPressure(this.pressure + delta);
+    // Keep simulated steps exact (0.7 + 0.1 = 0.8, not 0.7999…) so the
+    // displayed percentage and the pressure band never disagree.
+    this.pressure = clampPressure(Math.round((this.pressure + delta) * 1e6) / 1e6);
     this.emit();
   }
 
