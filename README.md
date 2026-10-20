@@ -9,7 +9,7 @@ Real-time ASCII art terminal paint. Draw directly with characters — the canvas
 
 ```bash
 bun install
-bun run start                          # canvas fills the terminal
+bun run start                          # adaptive canvas fills the available area
 bun run src/main.ts -w 100 -h 30       # fixed 100×30 document
 ```
 
