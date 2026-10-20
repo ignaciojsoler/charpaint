@@ -5,6 +5,7 @@ import {
   emptyCell,
   getCell,
   inBounds,
+  resizeDocument,
   setCell,
   cellsEqual,
 } from "./document.ts";
@@ -34,7 +35,7 @@ export interface Ghost {
  * change notifications.
  */
 export class DrawingEngine {
-  readonly doc: Document;
+  doc: Document;
   readonly brush: BrushState;
   readonly history: History;
 
@@ -365,6 +366,23 @@ export class DrawingEngine {
     }
     this.endStroke();
     this.emit();
+  }
+
+  /**
+   * Resize the document (geometry, not undoable). Overlapping content is
+   * preserved. Used by the adaptive canvas when the terminal grows.
+   * Returns true when the size actually changed.
+   */
+  resizeDocument(width: number, height: number): boolean {
+    if (width === this.doc.width && height === this.doc.height) return false;
+    this.commitText();
+    this.doc = resizeDocument(this.doc, width, height);
+    this.hover = null;
+    this.dragStart = null;
+    this.dragCurrent = null;
+    this.lastStamp = null;
+    this.emit();
+    return true;
   }
 
   /**

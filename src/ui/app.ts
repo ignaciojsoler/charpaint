@@ -28,22 +28,41 @@ const TOOL_KEYS: Record<string, ToolId> = {
 
 const SHORTCUT_HINT =
   "b brush · e erase · l line · r rect · t text · i pick · tab palette · [ ] char · p density on/off · " +
-  "-/+ pressure · 1-4 size · f/F fg · g/G bg · u/^z undo · U/^y redo · c clear · C cat · q quit";
+  "-/+ pressure · 1-4 size · f/F fg · g/G bg · u/^z undo · U/^y redo · c clear · C cat · ←↑↓→ pan · q quit";
 
 /**
  * Application shell: header, canvas, status bar, and all input wiring.
  * Owns no drawing logic — it adapts terminal input into engine calls.
  */
+export interface CharpaintOptions {
+  /**
+   * Adaptive canvas: grow the document to fill the terminal and follow
+   * terminal enlargement. Shrinking never destroys content; the viewport
+   * pans with the arrow keys instead.
+   */
+  autoGrow?: boolean;
+}
+
+/** Rows reserved by the header (1) and status bar (3). */
+const CHROME_ROWS = 4;
+
 export class CharpaintApp {
   private readonly engine: DrawingEngine;
   private readonly renderer: CliRenderer;
   private readonly canvas: CanvasView;
   private readonly header: TextRenderable;
   private readonly stateLine: TextRenderable;
+  private readonly autoGrow: boolean;
 
-  constructor(renderer: CliRenderer, width = 80, height = 24) {
+  constructor(
+    renderer: CliRenderer,
+    width = 80,
+    height = 24,
+    options: CharpaintOptions = {},
+  ) {
     this.renderer = renderer;
     this.engine = new DrawingEngine(width, height);
+    this.autoGrow = options.autoGrow ?? false;
 
     const ctx: RenderContext = renderer;
 
@@ -98,11 +117,41 @@ export class CharpaintApp {
     renderer.keyInput.on("keypress", this.onKey);
     renderer.once("destroy", () => {
       renderer.keyInput.off("keypress", this.onKey);
+      renderer.off("resize", this.onRendererResize);
     });
+
+    if (this.autoGrow) {
+      renderer.on("resize", this.onRendererResize);
+      this.growToTerminal();
+    }
 
     this.engine.subscribe(() => this.refreshChrome());
     this.refreshChrome();
     this.canvas.sync();
+  }
+
+  /** Size available for the canvas after header + status chrome. */
+  private availableCanvasSize(): { width: number; height: number } {
+    return {
+      width: Math.max(8, this.renderer.width),
+      height: Math.max(4, this.renderer.height - CHROME_ROWS),
+    };
+  }
+
+  private readonly onRendererResize = (): void => {
+    this.growToTerminal();
+  };
+
+  /**
+   * Grow-only auto fit: enlarging the terminal enlarges the document;
+   * shrinking leaves it intact so no artwork is ever destroyed.
+   */
+  private growToTerminal(): void {
+    if (!this.autoGrow) return;
+    const available = this.availableCanvasSize();
+    const width = Math.max(available.width, this.engine.doc.width);
+    const height = Math.max(available.height, this.engine.doc.height);
+    this.engine.resizeDocument(width, height);
   }
 
   // ------------------------------------------------------------ swatches
@@ -281,6 +330,18 @@ export class CharpaintApp {
       case "u":
         if (key.shift) engine.redo();
         else engine.undo();
+        return;
+      case "left":
+        this.canvas.pan(-1, 0);
+        return;
+      case "right":
+        this.canvas.pan(1, 0);
+        return;
+      case "up":
+        this.canvas.pan(0, -1);
+        return;
+      case "down":
+        this.canvas.pan(0, 1);
         return;
       case "c":
         if (key.shift) {

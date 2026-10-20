@@ -67,3 +67,21 @@ export function countPaintedCells(doc: Document): number {
   }
   return painted;
 }
+
+/**
+ * Grow or shrink the document, preserving content in the overlapping
+ * region and filling new cells with the empty state. Cells are immutable
+ * (writes replace them), so sharing references with the old grid is safe.
+ */
+export function resizeDocument(doc: Document, width: number, height: number): Document {
+  if (width === doc.width && height === doc.height) return doc;
+  const next = createDocument(width, height);
+  const copyWidth = Math.min(width, doc.width);
+  const copyHeight = Math.min(height, doc.height);
+  for (let y = 0; y < copyHeight; y++) {
+    const source = doc.cells[y]!;
+    const target = next.cells[y]!;
+    for (let x = 0; x < copyWidth; x++) target[x] = source[x]!;
+  }
+  return next;
+}

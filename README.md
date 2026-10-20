@@ -9,9 +9,14 @@ Real-time ASCII art terminal paint. Draw directly with characters — the canvas
 
 ```bash
 bun install
-bun run start                          # 80×24 document
-bun run src/main.ts -w 100 -h 30       # custom document size
+bun run start                          # canvas fills the terminal
+bun run src/main.ts -w 100 -h 30       # fixed 100×30 document
 ```
+
+By default the canvas is **adaptive**: the document starts at the terminal
+size and grows when you enlarge the window. Shrinking never destroys
+artwork — the document keeps its size and the viewport pans with the arrow
+keys. Pass both `--width` and `--height` to pin a fixed-size document.
 
 Requires [Bun](https://bun.sh) (OpenTUI's native core loads through its FFI)
 and a terminal with mouse reporting (see *Terminal compatibility* below).
@@ -31,6 +36,8 @@ and a terminal with mouse reporting (see *Terminal compatibility* below).
 | Foreground / background | `f`/`F`, `g`/`G`, or click the color swatches |
 | Undo / redo | `u` or `Ctrl+Z` · `Shift+U` or `Ctrl+Y` (stroke-granular) |
 | Clear canvas | `c` (undoable) |
+| Demo cat | `Shift+C` (stamps centered, one undoable stroke) |
+| Pan viewport | Arrow keys (when the document is larger than the view) |
 | Text tool | Click to place the cursor, type, `Enter` newline, `Esc` finish |
 | Quit | `q` or `Ctrl+C` |
 
@@ -76,8 +83,10 @@ interface PointerInput {
 }
 ```
 
-Pressure indexes the active palette as a light→heavy ramp (the default
-"Density" palette implements the spec mapping: `.` `:` `+` `#` `█`). A future
+Pressure indexes the active palette as a light→heavy ramp. The default
+"Density" palette has ten glyphs — `.` `,` `:` `;` `+` `*` `#` `%` `@` `█` —
+one per 10% pressure band, keeping the spec anchors (`:` medium-low, `+`
+medium, `#` high, `█` max). A future
 tablet adapter only has to deliver real `pressure`/`tilt` through the same
 interface — the brush engine, tools, and renderer stay untouched.
 

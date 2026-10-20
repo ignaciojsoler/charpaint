@@ -96,6 +96,15 @@ export class CanvasView extends FrameBufferRenderable {
     this.oy = Math.max(0, Math.min(maxOy, this.oy));
   }
 
+  /** Pan the viewport by cells (keyboard navigation when doc > viewport). */
+  pan(dx: number, dy: number): void {
+    const maxOx = Math.max(0, this.engine.doc.width - this.width);
+    const maxOy = Math.max(0, this.engine.doc.height - this.height);
+    this.ox = Math.max(0, Math.min(maxOx, this.ox + dx));
+    this.oy = Math.max(0, Math.min(maxOy, this.oy + dy));
+    this.sync();
+  }
+
   // -------------------------------------------------------------- pointer
 
   private handlePointer(kind: "down" | "drag" | "up" | "move", event: MouseEvent): void {

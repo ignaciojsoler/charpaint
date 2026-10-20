@@ -317,6 +317,37 @@ describe("DrawingEngine: clear + modified", () => {
   });
 });
 
+describe("DrawingEngine: adaptive document", () => {
+  it("grows while preserving art and notifies subscribers", () => {
+    const engine = new DrawingEngine(10, 10);
+    engine.pressure = 1;
+    engine.pointerDown(input(engine, 1, 1));
+    engine.pointerUp(input(engine, 1, 1));
+
+    let notified = 0;
+    engine.subscribe(() => notified++);
+
+    expect(engine.resizeDocument(20, 15)).toBe(true);
+    expect(engine.doc.width).toBe(20);
+    expect(engine.doc.height).toBe(15);
+    expect(getCell(engine.doc, 1, 1)?.char).toBe("█");
+    expect(notified).toBe(1);
+
+    expect(engine.resizeDocument(20, 15)).toBe(false);
+    expect(notified).toBe(1);
+  });
+
+  it("keeps history usable after shrinking", () => {
+    const engine = new DrawingEngine(10, 10);
+    engine.pressure = 1;
+    engine.pointerDown(input(engine, 1, 1));
+    engine.pointerUp(input(engine, 1, 1));
+    engine.resizeDocument(5, 5);
+    engine.undo();
+    expect(getCell(engine.doc, 1, 1)?.char).toBe(" ");
+  });
+});
+
 describe("DrawingEngine: ghost cursor", () => {
   it("reports a stamp ghost at the hover position", () => {
     const engine = new DrawingEngine(10, 10);

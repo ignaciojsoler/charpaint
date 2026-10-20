@@ -5,8 +5,8 @@ import { CharpaintApp } from "./ui/app.ts";
 
 const { values } = parseArgs({
   options: {
-    width: { type: "string", short: "w", default: "80" },
-    height: { type: "string", short: "h", default: "24" },
+    width: { type: "string", short: "w" },
+    height: { type: "string", short: "h" },
     help: { type: "boolean", default: false },
   },
   strict: true,
@@ -17,27 +17,43 @@ if (values.help) {
 
 Usage: bun run src/main.ts [--width N] [--height N]
 
-  --width, -w   Document width in cells (default: 80)
-  --height, -h  Document height in cells (default: 24)
+  --width, -w   Document width in cells  (default: fill the terminal)
+  --height, -h  Document height in cells (default: fill the terminal)
+
+By default the canvas adapts to your terminal: it starts at the current
+size and grows when you enlarge the window. Shrinking the window keeps
+the artwork intact (pan with the arrow keys). Pass both flags to pin a
+fixed-size document instead.
 
 Requires a terminal with mouse support (SGR mouse mode). Run inside a
 real terminal — not a pipe — for full interactivity.`);
   process.exit(0);
 }
 
-const width = Number(values.width);
-const height = Number(values.height);
-if (!Number.isInteger(width) || !Number.isInteger(height) || width < 8 || height < 4) {
-  console.error("error: --width must be an integer >= 8, --height an integer >= 4");
-  process.exit(1);
+function parseDimension(value: string | undefined, min: number, label: string): number | undefined {
+  if (value === undefined) return undefined;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < min) {
+    console.error(`error: ${label} must be an integer >= ${min}`);
+    process.exit(1);
+  }
+  return parsed;
 }
+
+const explicitWidth = parseDimension(values.width, 8, "--width");
+const explicitHeight = parseDimension(values.height, 4, "--height");
 
 const renderer = await createCliRenderer({
   exitOnCtrlC: true,
   targetFps: 60,
 });
 
-new CharpaintApp(renderer, width, height);
+// Fully adaptive only when neither dimension is pinned.
+const autoGrow = explicitWidth === undefined && explicitHeight === undefined;
+const width = explicitWidth ?? Math.max(8, renderer.width);
+const height = explicitHeight ?? Math.max(4, renderer.height - 4);
+
+new CharpaintApp(renderer, width, height, { autoGrow });
 
 const shutdown = () => renderer.destroy();
 process.on("SIGTERM", shutdown);

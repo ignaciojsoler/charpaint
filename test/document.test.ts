@@ -7,6 +7,7 @@ import {
   getCell,
   inBounds,
   isEmptyCell,
+  resizeDocument,
   setCell,
 } from "../src/core/document.ts";
 
@@ -50,6 +51,29 @@ describe("document model", () => {
     expect(
       cellsEqual({ char: "a", background: "#000" }, { char: "a", background: "#000" }),
     ).toBe(true);
+  });
+
+  it("resizes preserving overlapping content", () => {
+    const doc = createDocument(3, 2);
+    setCell(doc, 0, 0, { char: "a", foreground: "#fff" });
+    setCell(doc, 2, 1, { char: "b" });
+
+    const grown = resizeDocument(doc, 5, 4);
+    expect(grown.width).toBe(5);
+    expect(grown.height).toBe(4);
+    expect(getCell(grown, 0, 0)?.char).toBe("a");
+    expect(getCell(grown, 2, 1)?.char).toBe("b");
+    expect(getCell(grown, 4, 3)).toEqual(emptyCell());
+
+    const shrunk = resizeDocument(doc, 2, 1);
+    expect(shrunk.width).toBe(2);
+    expect(getCell(shrunk, 0, 0)?.char).toBe("a");
+    expect(getCell(shrunk, 2, 1)).toBeUndefined();
+  });
+
+  it("returns the same document when the size is unchanged", () => {
+    const doc = createDocument(2, 2);
+    expect(resizeDocument(doc, 2, 2)).toBe(doc);
   });
 
   it("counts painted cells", () => {

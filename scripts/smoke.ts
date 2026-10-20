@@ -135,6 +135,33 @@ check("cat stamp redoes", getCell(engine.doc, catOrigin.x + 19, catOrigin.y + 12
 
 setup.renderer.destroy();
 
+// --- 12. adaptive canvas: fills the terminal and follows growth --------------
+const autoSetup = await createTestRenderer({ width: 100, height: 30 });
+const autoApp = new CharpaintApp(autoSetup.renderer as any, 60, 20, { autoGrow: true });
+const autoEngine = (
+  autoApp as unknown as { engine: import("../src/core/engine.ts").DrawingEngine }
+).engine;
+await autoSetup.renderOnce();
+check(
+  "auto canvas fills the terminal at launch",
+  autoEngine.doc.width === 100 && autoEngine.doc.height === 26,
+);
+
+autoEngine.pressure = 1;
+await autoSetup.mockMouse.click(5, 3);
+await autoSetup.renderOnce();
+
+autoSetup.renderer.resize(120, 40);
+await autoSetup.renderOnce();
+await autoSetup.renderOnce();
+check(
+  "auto canvas grows with the terminal",
+  autoEngine.doc.width === 120 && autoEngine.doc.height === 36,
+);
+check("auto canvas preserves content on growth", getCell(autoEngine.doc, 5, 2)?.char === "█");
+
+autoSetup.renderer.destroy();
+
 if (failures > 0) {
   console.error(`\n${failures} smoke check(s) FAILED`);
   process.exit(1);
